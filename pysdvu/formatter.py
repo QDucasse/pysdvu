@@ -12,20 +12,19 @@
 
 
 class Formatter():
-    '''Preprocess an sdve program into a version with propagated types.
+    '''
+    Preprocess an sdve program into a version with propagated types.
     '''
 
     # Dictionary with the different variables and their corresponding types
-    TEMP_TYPES = {}
 
     @classmethod
     def process_file(cls, filename):
         '''
         Process a file with propagated types.
         '''
-
-        glob_decl, temp_decl, proc = preprocess(filename)
-
+        temp_types = {}
+        glob_decl, temp_decl, proc = cls.preprocess(filename)
         new_content = glob_decl
 
         # Process temporary types
@@ -34,15 +33,16 @@ class Formatter():
             type = split_line[1]
             id = split_line.index("=")
             name = split_line[id-1]
-            TEMP_TYPES[name] = type
-
+            temp_types[name] = type
         # Propagate type
         for line in proc:
             if line.startswith("t_"):
                 name = line.split(" ")[0]
-                new_content.append(TEMP_TYPES[name] + " " + line)
+                new_content.append("temp " + temp_types[name] + " " + line)
             else:
                 new_content.append(line)
+
+        return new_content
 
 
     @classmethod
@@ -59,12 +59,17 @@ class Formatter():
         id = 0
         temp_id = 0
         proc_id = 0
+        temp_passed = False
         for line in content:
-            if (line.startswith("temp") and not(temp_id==0)):
-                temp_id =id
-            if (line.startswith("process") and not(proc_id==0)):
+            if (line.startswith("temp") and not(temp_passed)):
+                temp_id = id
+                temp_passed =  True
+            if (line.startswith("process")):
                 proc_id = id
                 break
             id += 1
-        print(content[:temp_id])
         return content[:temp_id], content[temp_id:proc_id], content[proc_id:]
+
+
+if __name__ == "__main__":
+    print(Formatter.process_file("../sdve-beem-benchmark/adding/adding.1.sdve"))
