@@ -16,7 +16,36 @@ class Formatter():
     Preprocess an sdve program into a version with propagated types.
     '''
 
-    # Dictionary with the different variables and their corresponding types
+    @classmethod
+    def write_file(cls, filename):
+        '''
+        Rewrite the input file with the propagated types.
+        '''
+        content = cls.process_file(filename)
+        with open(filename, "w") as f:
+            indent = 0
+            nl = 0
+            fpe = 0
+            for line in content:
+
+                if line.startswith("process"):
+                    fpe = 1
+                    nl = 1
+                    indent = 1
+                elif ((line.startswith("guardBlock") or
+                       line.startswith("guardCondition") or
+                       line.startswith("effect")) and fpe == 1):
+                    nl = 0
+                    indent = 2
+                elif line.startswith("guardCondition") and fpe == 1:
+                    nl = 0
+                    indent = 2
+                elif line.startswith("system async;") and fpe == 1:
+                    nl = 1
+                    indent = 0
+                elif fpe == 1:
+                    indent = 3
+                f.write("\n"*nl + "  "*indent + line +"\n")
 
     @classmethod
     def process_file(cls, filename):
@@ -41,9 +70,7 @@ class Formatter():
                 new_content.append("temp " + temp_types[name] + " " + line)
             else:
                 new_content.append(line)
-
         return new_content
-
 
     @classmethod
     def preprocess(cls, filename):
@@ -70,6 +97,8 @@ class Formatter():
             id += 1
         return content[:temp_id], content[temp_id:proc_id], content[proc_id:]
 
-
 if __name__ == "__main__":
-    print(Formatter.process_file("../sdve-beem-benchmark/adding/adding.1.sdve"))
+    import glob
+    sdve_files = glob.glob("../sdve-beem-benchmark/**/*.sdve", recursive=True)
+    for file in sdve_files:
+        Formatter.write_file(file)
